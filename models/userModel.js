@@ -1,55 +1,76 @@
-import pool from './../config.js';
+import conn from './../config.js';
 
 async function createUser(userDetails) {
-  const {email, username, publicKey, device} = userDetails;
-  const query = `INSERT INTO user (email, username) VALUES ('${email}', '${username}')`;
+  try {
+    const {email, username, publicKey, device} = userDetails;
 
-  pool
-    .query(query, (err, result) => {
-      if (err) throw err;
-      console.log(result);
-    })
-    .then((result) => {
-      const userId = result.insertId;
-      addPublicKeyToUser(userId, publicKey, device);
+    // Create a new user document in MongoDB using Mongoose
+    const newUser = new conn.User({
+      email,
+      username,
+      publicKeys: [{public_key: publicKey, device}],
     });
+
+    // Save the user document to the database
+    const savedUser = await newUser.save();
+    // Optionally return the saved user data or any specific information
+    return savedUser;
+  } catch (error) {
+    throw error;
+  }
 }
 
 async function getUserByEmail(email) {
-  console.log(email);
-  const query = `SELECT * FROM user WHERE email = '${email}'`;
+  try {
+    // Find a user in MongoDB using Mongoose
+    const user = await conn.User.findOne({email: email});
 
-  pool
-    .query(query, (err, result) => {
-      if (err) throw err;
-      console.log(result);
-      return result;
-    })
-    .then((res) => {
-      console.log(res);
-      return res;
-    });
+    // Return the user or any specific information
+    return user;
+  } catch (error) {
+    throw error;
+  }
 }
 
 async function getPublicKeyByUser(userId) {
-  const query = `SELECT * FROM user_keys WHERE user_id = '${userId}'`;
+  try {
+    // Find user keys in MongoDB using Mongoose
+    const user = await conn.User.findOne({_id: userId});
+    let keys = [];
 
-  pool.query(query, (err, result) => {
-    if (err) throw err;
-    console.log(result);
-    return result;
-  });
+    user.publicKeys.forEach((userKey) => {
+      keys.push(userKey.public_key);
+    });
+
+    // Return the user keys or any specific information
+    return keys;
+  } catch (error) {
+    throw error;
+  }
 }
 
-function addPublicKeyToUser(userId, publicKey, device) {
-  // add public FIDO key to user
-  publicKey = JSON.stringify(publicKey);
-  const query = `INSERT INTO user_keys (user_id, device, public_key) VALUES ('${userId}', '${device}', '${publicKey}')`;
+async function addPublicKeyToUser(userId, publicKey, device) {
+  try {
+    // Create a new user key document in MongoDB using Mongoose
+    const newUserKey = new conn.UserKey({
+      user_id: userId,
+      device,
+      public_key: publicKey,
+    });
 
-  pool.query(query, (err, result) => {
-    if (err) throw err;
-    console.log(result);
-  });
+    // Save the user key document to the database
+    const savedUserKey = await newUserKey.save();
+
+    // Optionally return the saved user key data or any specific information
+    return savedUserKey;
+  } catch (error) {
+    throw error;
+  }
 }
 
-export default {createUser, getUserByEmail, addPublicKeyToUser};
+export default {
+  createUser,
+  getUserByEmail,
+  addPublicKeyToUser,
+  getPublicKeyByUser,
+};

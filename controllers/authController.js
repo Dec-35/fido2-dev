@@ -1,25 +1,39 @@
 import model from '../models/userModel.js';
 import crypto from 'crypto';
 
-function generateAssertion(storage, challenge, publicKey) {
-  /*
-   * @param {Object} storage - session storage
-   * @param {string} challenge - privatly encrypted challenge sent by the user
-   * @param {string} publicKey - public key of the user (from the database)
-   * @returns {Boolean} - assertion status
-   */
-  // check if the challenge can be verified using the public key
-  // return the assertion if the verification is successful
-  // return false if the verification fails
+async function verifyChallenge(originalChallenge, signedChallenge, publicKey) {
   try {
-    const verify = crypto.createVerify('sha256');
-    verify.update(challenge);
+    console.log('Original challenge:', originalChallenge);
+    console.log('Signed challenge:', signedChallenge);
+    console.log('Public key:', publicKey);
 
-    // Verify the challenge signature using the user's public key
-    const isVerified = verify.verify(publicKey, signature, 'hex');
-    return isVerified;
+    // Import the client's public key
+    const importedPublicKey = await crypto.subtle.importKey(
+      'spki',
+      publicKey,
+      {
+        name: 'ECDSA',
+        namedCurve: 'P-256',
+      },
+      true,
+      ['verify']
+    );
+
+    // Verify the signed challenge with the public key
+    const result = await crypto.subtle.verify(
+      {
+        name: 'ECDSA',
+        hash: {name: 'SHA-256'},
+      },
+      importedPublicKey,
+      signedChallenge,
+      originalChallenge
+    );
+
+    // Return true if the signature verification succeeds, false otherwise
+    return result;
   } catch (error) {
-    console.error('Error occurred during challenge verification:', error);
+    console.error('Error verifying the challenge:', error);
     return false;
   }
 }
@@ -50,6 +64,7 @@ async function registerUser(req, res) {
     res.status(409).json({message: 'User already exists'});
     return;
   }
+
   console.log(email, username, publicKey, device);
 
   // create a new user
@@ -61,26 +76,39 @@ async function registerUser(req, res) {
 async function loginUser(req, res) {
   const {email, challenge} = req.body;
 
-  const user = await model.getUserByEmail(email);
-  console.log(user);
-  if (user === undefined) {
-    res.status(404).json({message: 'User not found'});
-    return;
-  }
+  try {
+    const user = await model.getUserByEmail(email);
 
-  const {id} = user;
+    if (!user || user.length === 0) {
+      res.status(404).json({message: 'User not found'});
+      return;
+    }
 
-  const {publicKey} = await model.getPublicKeyByUser(id);
+    const user_id = user._id.toString();
+    const publicKeys = await model.getPublicKeyByUser(user_id);
 
-  const assertion = generateAssertion(req.session, challenge, publicKey);
+    const signedChallengeBytes = new Uint8Array(challenge);
+    const originalChallengeBytes = new Uint8Array(req.session.challenge);
 
-  if (!assertion) {
-    res.status(404).json({message: 'Challenge could not be verified'});
-    return;
-  } else {
-    res.status(200).json({message: 'User logged in'});
-    //set user session
-    req.session.user = {id, email};
+    publicKeys.forEach((publicKey) => {
+      const publicKeyBytes = new Uint8Array(publicKey);
+
+      const assertion = verifyChallenge(
+        originalChallengeBytes,
+        signedChallengeBytes,
+        publicKeyBytes
+      );
+      if (assertion) {
+        res.status(200).json({message: 'User logged in'});
+        // Set user session
+        req.session.user = {user_id, email};
+        return;
+      }
+    });
+  } catch (error) {
+    // Handle any errors that occurred during the process
+    console.error('Error:', error);
+    res.status(500).json({message: 'Internal Server Error'});
   }
 }
 

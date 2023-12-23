@@ -1,12 +1,31 @@
 //mariadb config
-import mariadb from 'mariadb';
+import mongoose from 'mongoose';
 
-const pool = mariadb.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'root',
-  database: 'fidodev',
-  connectionLimit: 5,
+const mongoDB =
+  'mongodb+srv://decleggal:D75fQbiY7v6FHyAU@cluster0.ksh2zlk.mongodb.net/fido';
+
+const UserKeySchema = new mongoose.Schema({
+  user_id: String,
+  publicKey: String,
+  device: String,
+});
+const UserKey = mongoose.model('UserKey', UserKeySchema);
+
+const UserSchema = new mongoose.Schema({
+  email: String,
+  username: String,
+  publicKeys: [{public_key: Array, device: String}],
 });
 
-export default pool;
+const User = mongoose.model('User', UserSchema);
+
+mongoose
+  .connect(mongoDB)
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((err) => {
+    console.error('MongoDB connection error:', err);
+  });
+
+export default {User, UserKey};

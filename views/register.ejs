@@ -22,6 +22,14 @@
     } else {
       let PUBLIC_KEY;
       let PRIVATE_KEY;
+      let deviceName;
+
+      if (localStorage.getItem('deviceName')) {
+        deviceName = localStorage.getItem('deviceName');
+      } else {
+        deviceName = prompt('Enter a name for this device');
+        localStorage.setItem('deviceName', deviceName);
+      }
 
       async function registerUserWithKeys() {
         try {
@@ -41,7 +49,6 @@
             keyPair.publicKey
           );
           const publicBuffer = new Uint8Array(exportedPublicKey);
-          const publicBase64 = btoa(String.fromCharCode(...publicBuffer));
           PUBLIC_KEY = publicBuffer;
 
           // Export the private key
@@ -50,14 +57,7 @@
             keyPair.privateKey
           );
           const privateBuffer = new Uint8Array(exportedPrivateKey);
-          const privateBase64 = btoa(String.fromCharCode(...privateBuffer));
           PRIVATE_KEY = privateBuffer;
-
-          // Use the exported public and private keys
-          console.log('Public Key:', publicBase64);
-          console.log('Private Key:', privateBase64);
-
-          const deviceName = prompt('Enter a name for this device');
 
           const form = document.getElementById('form');
           form.addEventListener('submit', async (e) => {
@@ -73,7 +73,7 @@
               body: JSON.stringify({
                 email,
                 username,
-                publicKey: PUBLIC_KEY,
+                publicKey: Array.from(PUBLIC_KEY),
                 device: deviceName,
               }),
             });
