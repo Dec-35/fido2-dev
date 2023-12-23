@@ -16,13 +16,19 @@ async function createUser(userDetails) {
 }
 
 async function getUserByEmail(email) {
+  console.log(email);
   const query = `SELECT * FROM user WHERE email = '${email}'`;
 
-  pool.query(query, (err, result) => {
-    if (err) throw err;
-    console.log(result);
-    return result;
-  });
+  pool
+    .query(query, (err, result) => {
+      if (err) throw err;
+      console.log(result);
+      return result;
+    })
+    .then((res) => {
+      console.log(res);
+      return res;
+    });
 }
 
 async function getPublicKeyByUser(userId) {
@@ -37,6 +43,7 @@ async function getPublicKeyByUser(userId) {
 
 function addPublicKeyToUser(userId, publicKey, device) {
   // add public FIDO key to user
+  publicKey = JSON.stringify(publicKey);
   const query = `INSERT INTO user_keys (user_id, device, public_key) VALUES ('${userId}', '${device}', '${publicKey}')`;
 
   pool.query(query, (err, result) => {

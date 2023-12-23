@@ -17,60 +17,83 @@
   <script>
     if (!localStorage.getItem('privateKey')) {
       window.location.href = './signup';
+    } else {
+      const storedPrivateKey = JSON.parse(localStorage.getItem('privateKey'));
+
+      const form = document.querySelector('form');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.querySelector('#email').value;
+        const res = await fetch('./getChallenge', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        const {challenge} = await res.json();
+
+        try {
+          console.log(storedPrivateKey);
+          if (storedPrivateKey && Array.isArray(storedPrivateKey)) {
+            const privateBuffer = new Uint8Array(storedPrivateKey);
+            // Convert the Uint8Array to an ArrayBuffer
+            const privateArrayBuffer = privateBuffer.buffer.slice(0);
+
+            const challengeBuffer = new Uint8Array(challenge);
+            // Convert the Uint8Array to an ArrayBuffer
+            const challengeArrayBuffer = challengeBuffer.buffer.slice(0);
+
+            console.log(privateArrayBuffer, challengeArrayBuffer);
+            // Import the private key
+            const importedPrivateKey = await crypto.subtle.importKey(
+              'pkcs8',
+              privateArrayBuffer,
+              {
+                name: 'ECDSA',
+                namedCurve: 'P-256',
+              },
+              true,
+              ['sign']
+            );
+
+            const encryptedChallenge = await crypto.subtle.sign(
+              {
+                name: 'ECDSA',
+                hash: {name: 'SHA-256'},
+              },
+              importedPrivateKey,
+              challengeArrayBuffer
+            );
+
+            // Convert the ArrayBuffer to a Uint8Array
+            const encryptedChallengeArray = new Uint8Array(encryptedChallenge);
+
+            // Send the encrypted challenge to the server
+            const res2 = await fetch('./login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                email,
+                challenge: encryptedChallengeArray,
+              }),
+            });
+
+            const status = await res2.json();
+            if (status.status === 'ok') {
+              alert('Login successful');
+            } else {
+              alert('Login failed');
+            }
+          } else {
+            throw new Error('Invalid private key format');
+          }
+        } catch (error) {
+          console.error('Error during login:', error);
+          alert('Login failed');
+        }
+      });
     }
-    const storedPrivateKey = JSON.parse(localStorage.getItem('privateKey'));
-
-    const form = document.querySelector('form');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.querySelector('#email').value;
-      const res = await fetch('./getChallenge', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      const {challenge} = await res.json();
-
-      //encrypt the challenge with the user's private key
-      const importedPrivateKey = await crypto.subtle.importKey(
-        'pkcs8',
-        storedPrivateKey,
-        {
-          name: 'ECDSA',
-          namedCurve: 'P-256',
-        },
-        true,
-        ['sign']
-      );
-
-      const encryptedChallenge = await crypto.subtle.sign(
-        {
-          name: 'ECDSA',
-          hash: {name: 'SHA-256'},
-        },
-        importedPrivateKey,
-        challenge
-      );
-
-      //send the encrypted challenge to the server
-      const res2 = await fetch('./login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          challenge: encryptedChallenge,
-        }),
-      });
-
-      const status = await res2.json();
-      if (status.status === 'ok') {
-        alert('Login successful');
-      } else {
-        alert('Login failed');
-      }
-    });
   </script>
 </html>

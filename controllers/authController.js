@@ -27,8 +27,19 @@ function generateAssertion(storage, challenge, publicKey) {
 function generateChallenge(storage) {
   // Creates a new challenge
   var challenge = crypto.randomBytes(32).toString('hex');
-  storage.challenge = challenge;
-  return challenge;
+
+  // Convert hex string to bytes
+  function hexToBytes(hex) {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; i++) {
+      bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    return bytes;
+  }
+
+  const challengeArray = hexToBytes(challenge);
+  storage.challenge = challengeArray;
+  return challengeArray;
 }
 
 async function registerUser(req, res) {
@@ -42,14 +53,17 @@ async function registerUser(req, res) {
   console.log(email, username, publicKey, device);
 
   // create a new user
-  model.createUser({email, username, publicKey, device});
+  await model.createUser({email, username, publicKey, device});
+
+  res.status(200).json({message: 'User created', success: true});
 }
 
 async function loginUser(req, res) {
   const {email, challenge} = req.body;
 
   const user = await model.getUserByEmail(email);
-  if (!user) {
+  console.log(user);
+  if (user === undefined) {
     res.status(404).json({message: 'User not found'});
     return;
   }
@@ -61,7 +75,7 @@ async function loginUser(req, res) {
   const assertion = generateAssertion(req.session, challenge, publicKey);
 
   if (!assertion) {
-    res.status(404).json({message: 'User not found'});
+    res.status(404).json({message: 'Challenge could not be verified'});
     return;
   } else {
     res.status(200).json({message: 'User logged in'});
