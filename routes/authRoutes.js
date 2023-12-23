@@ -3,8 +3,22 @@ const router = express.Router();
 
 import authController from '../controllers/authController.js';
 
-app.post('/login', authController.login);
+router.get('/', (req, res) => {
+  res.render('index');
+});
 
-app.post('/register', authController.register);
+router.get('/signup', (req, res) => {
+  res.render('register');
+});
 
-app.post('/register-device', authController.registerDevice);
+router.get('/getChallenge', (req, res) => {
+  res.json({challenge: authController.generateChallenge(req.session)});
+});
+
+router.post('/login', authController.loginUser);
+
+router.post('/register', authController.registerUser);
+
+router.post('/register-device', authController.registerNewDevice);
+
+export default router;

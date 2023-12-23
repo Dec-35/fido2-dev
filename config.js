@@ -4,8 +4,8 @@ import mariadb from 'mariadb';
 const pool = mariadb.createPool({
   host: 'localhost',
   user: 'root',
-  password: 'password',
-  database: 'fido',
+  password: 'root',
+  database: 'fidodev',
   connectionLimit: 5,
 });
 

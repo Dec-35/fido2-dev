@@ -5,5 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Login</title>
   </head>
-  <body></body>
+  <body>
+    <h1>Login</h1>
+    <form action="/login" method="POST">
+      <label for="email">Email</label>
+      <input type="email" name="email" id="email" />
+      <button type="submit">Login</button>
+      <a href="./signup">Register</a>
+    </form>
+  </body>
+  <script>
+    if (!localStorage.getItem('privateKey')) {
+      window.location.href = './signup';
+    }
+    const storedPrivateKey = JSON.parse(localStorage.getItem('privateKey'));
+
+    const form = document.querySelector('form');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.querySelector('#email').value;
+      const res = await fetch('./getChallenge', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      const {challenge} = await res.json();
+
+      //encrypt the challenge with the user's private key
+      const importedPrivateKey = await crypto.subtle.importKey(
+        'pkcs8',
+        storedPrivateKey,
+        {
+          name: 'ECDSA',
+          namedCurve: 'P-256',
+        },
+        true,
+        ['sign']
+      );
+
+      const encryptedChallenge = await crypto.subtle.sign(
+        {
+          name: 'ECDSA',
+          hash: {name: 'SHA-256'},
+        },
+        importedPrivateKey,
+        challenge
+      );
+
+      //send the encrypted challenge to the server
+      const res2 = await fetch('./login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          challenge: encryptedChallenge,
+        }),
+      });
+
+      const status = await res2.json();
+      if (status.status === 'ok') {
+        alert('Login successful');
+      } else {
+        alert('Login failed');
+      }
+    });
+  </script>
 </html>
