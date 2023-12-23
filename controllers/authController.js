@@ -30,6 +30,8 @@ async function verifyChallenge(originalChallenge, signedChallenge, publicKey) {
       originalChallenge
     );
 
+    console.log('Result:', result);
+
     // Return true if the signature verification succeeds, false otherwise
     return result;
   } catch (error) {
@@ -59,6 +61,21 @@ function generateChallenge(storage) {
 async function registerUser(req, res) {
   const {email, username, publicKey, device} = req.body;
 
+  if (
+    email === undefined ||
+    username === undefined ||
+    publicKey === undefined ||
+    device === undefined
+  ) {
+    res.status(400).json({message: 'Bad Request'});
+    return;
+  }
+
+  if (email === '' || username === '' || publicKey === '' || device === '') {
+    res.status(400).json({message: 'All fields are required'});
+    return;
+  }
+
   const user = await model.getUserByEmail(email);
   if (user) {
     res.status(409).json({message: 'User already exists'});
@@ -76,6 +93,16 @@ async function registerUser(req, res) {
 async function loginUser(req, res) {
   const {email, challenge} = req.body;
 
+  if (email === undefined || challenge === undefined) {
+    res.status(400).json({message: 'Bad Request'});
+    return;
+  }
+
+  if (email === '') {
+    res.status(400).json({message: 'Email is required'});
+    return;
+  }
+
   try {
     const user = await model.getUserByEmail(email);
 
@@ -84,24 +111,35 @@ async function loginUser(req, res) {
       return;
     }
 
+    const username = user.username;
     const user_id = user._id.toString();
     const publicKeys = await model.getPublicKeyByUser(user_id);
 
-    const signedChallengeBytes = new Uint8Array(challenge);
-    const originalChallengeBytes = new Uint8Array(req.session.challenge);
+    const originalChallengeValues = Object.values(req.session.challenge);
+    const signedChallengeValues = Object.values(challenge);
 
-    publicKeys.forEach((publicKey) => {
+    // Create Uint8Array from the extracted values
+    const originalChallengeBytes = new Uint8Array(originalChallengeValues);
+    const signedChallengeBytes = new Uint8Array(signedChallengeValues);
+
+    // Then use these Uint8Arrays in your verifyChallenge function
+    publicKeys.forEach(async (publicKey) => {
       const publicKeyBytes = new Uint8Array(publicKey);
 
-      const assertion = verifyChallenge(
+      const assertion = await verifyChallenge(
         originalChallengeBytes,
         signedChallengeBytes,
         publicKeyBytes
       );
-      if (assertion) {
-        res.status(200).json({message: 'User logged in'});
+
+      if (assertion === true) {
         // Set user session
-        req.session.user = {user_id, email};
+        req.session.user = {user_id, email, username};
+        req.session.connected = true;
+        res.status(200).json({message: 'User logged in', success: true});
+        return;
+      } else {
+        res.status(401).json({message: 'Invalid challenge signature'});
         return;
       }
     });

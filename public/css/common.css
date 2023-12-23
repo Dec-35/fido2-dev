@@ -1,0 +1,121 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+
+body {
+    background-color: #211F2A;
+    padding: 0;
+    margin: 0;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+* {
+    box-sizing: border-box;
+    color: white;
+    margin: 0;
+    font-family: "Inter", sans-serif;
+}
+
+label {
+    color: #dbdbdb;
+}
+
+.centered {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    background-color: #252836;
+    padding: 4rem 1rem;
+    border-radius: 0.5rem;
+    width: 650px;
+    height: 450px;
+
+    margin-bottom: 5rem;
+}
+
+.middleContent {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    width: 60%;
+    margin: 0 auto;
+}
+
+h2 {
+    margin-bottom: auto;
+}
+
+a {
+    margin-top: 1.5rem;
+    width: fit-content;
+    transition: all 0.1s ease-in-out;
+    text-decoration: none;
+    background-color: #211F2A;
+    padding: 0.6rem 0.9rem;
+    border-radius: 4px;
+    outline: 0 solid rgba(107, 24, 240, 0.432);
+}
+
+a:hover {
+    color: rgb(157, 126, 206);
+}
+
+a:focus {
+    outline: 2px solid rgb(107, 24, 240);
+    outline-offset: 2px;
+}
+
+input {
+    margin: 5px 0 0.6rem 0;
+    padding: 0.6rem 0.9rem;
+    border-radius: 4px;
+    border: none;
+    background-color: rgb(23, 25, 36);
+    color: white;
+    transition: all 0.1s ease-in-out;
+    outline: 0 solid rgba(107, 24, 240, 0.432);
+}
+
+input:hover {
+    background-color: rgb(26, 29, 41);
+}
+
+input:focus {
+    outline: 2px solid rgb(107, 24, 240);
+    background-color: rgb(26, 29, 41);
+    outline-offset: 2px;
+}
+
+button {
+    padding: 0.6rem;
+    border-radius: 4px;
+    border: none;
+    background-color: rgb(107, 24, 240);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.1s ease-in-out;
+    outline: 0 solid rgba(107, 24, 240, 0.432);
+}
+
+.middleElement {
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.middleElement,
+button {
+    margin-bottom: auto;
+}
+
+button:hover {
+    background-color: rgba(96, 26, 207, 0.87);
+}
+
+button:focus {
+    outline: 2px solid rgb(107, 24, 240);
+    outline-offset: 2px;
+}

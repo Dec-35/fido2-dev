@@ -3,103 +3,136 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/common.css" />
+    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
     <title>Register</title>
   </head>
   <body>
-    <h1>Register</h1>
-    <form id="form">
-      <label for="username">Username</label>
-      <input type="text" name="username" id="username" />
-      <label for="email">Email</label>
-      <input type="email" name="email" id="email" />
-      <button type="submit">Register</button>
-      <a href="./">Login</a>
-    </form>
+    <div class="centered">
+      <form id="form" class="middleContent">
+        <h2>Register</h2>
+        <label for="username">Username</label>
+        <input
+          type="text"
+          name="username"
+          id="username"
+          placeholder="Username"
+        />
+        <label for="email">Email</label>
+        <input
+          type="email"
+          name="email"
+          id="email"
+          placeholder="Email address"
+        />
+        <button type="submit">Register</button>
+        <a href="./">Login</a>
+      </form>
+    </div>
   </body>
   <script>
-    if (localStorage.getItem('publicKey')) {
-      window.location.href = '/';
+    let PUBLIC_KEY;
+    let PRIVATE_KEY;
+    let deviceName;
+
+    if (localStorage.getItem('deviceName')) {
+      deviceName = localStorage.getItem('deviceName');
     } else {
-      let PUBLIC_KEY;
-      let PRIVATE_KEY;
-      let deviceName;
-
-      if (localStorage.getItem('deviceName')) {
-        deviceName = localStorage.getItem('deviceName');
-      } else {
-        deviceName = prompt('Enter a name for this device');
-        localStorage.setItem('deviceName', deviceName);
-      }
-
-      async function registerUserWithKeys() {
-        try {
-          // Generate ECDSA key pair
-          const keyPair = await crypto.subtle.generateKey(
-            {
-              name: 'ECDSA',
-              namedCurve: 'P-256', // Specify elliptic curve (e.g., P-256)
-            },
-            true, // Can extract private key
-            ['sign', 'verify'] // Key usages
-          );
-
-          // Export the public key
-          const exportedPublicKey = await crypto.subtle.exportKey(
-            'spki',
-            keyPair.publicKey
-          );
-          const publicBuffer = new Uint8Array(exportedPublicKey);
-          PUBLIC_KEY = publicBuffer;
-
-          // Export the private key
-          const exportedPrivateKey = await crypto.subtle.exportKey(
-            'pkcs8',
-            keyPair.privateKey
-          );
-          const privateBuffer = new Uint8Array(exportedPrivateKey);
-          PRIVATE_KEY = privateBuffer;
-
-          const form = document.getElementById('form');
-          form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.querySelector('#email').value;
-            const username = document.querySelector('#username').value;
-
-            const res = await fetch('/register', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                email,
-                username,
-                publicKey: Array.from(PUBLIC_KEY),
-                device: deviceName,
-              }),
-            });
-
-            const data = await res.json();
-            console.log(data);
-            if (data.success) {
-              // Store keys in local storage (example, ensure secure storage)
-              localStorage.setItem(
-                'publicKey',
-                JSON.stringify(Array.from(PUBLIC_KEY))
-              );
-              localStorage.setItem(
-                'privateKey',
-                JSON.stringify(Array.from(PRIVATE_KEY))
-              );
-              window.location.href = '/';
-            }
-          });
-        } catch (error) {
-          console.error('Key pair generation failed:', error);
-        }
-      }
-
-      // Call the function to register user with generated keys
-      registerUserWithKeys();
+      deviceName = prompt('Enter a name for this device');
+      localStorage.setItem('deviceName', deviceName);
     }
+
+    async function registerUserWithKeys() {
+      try {
+        // Generate ECDSA key pair
+        const keyPair = await crypto.subtle.generateKey(
+          {
+            name: 'ECDSA',
+            namedCurve: 'P-256', // Specify elliptic curve (e.g., P-256)
+          },
+          true, // Can extract private key
+          ['sign', 'verify'] // Key usages
+        );
+
+        // Export the public key
+        const exportedPublicKey = await crypto.subtle.exportKey(
+          'spki',
+          keyPair.publicKey
+        );
+        const publicBuffer = new Uint8Array(exportedPublicKey);
+        PUBLIC_KEY = publicBuffer;
+
+        // Export the private key
+        const exportedPrivateKey = await crypto.subtle.exportKey(
+          'pkcs8',
+          keyPair.privateKey
+        );
+        const privateBuffer = new Uint8Array(exportedPrivateKey);
+        PRIVATE_KEY = privateBuffer;
+
+        const form = document.getElementById('form');
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const email = document.querySelector('#email').value;
+          const username = document.querySelector('#username').value;
+
+          const res = await fetch('/register', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email,
+              username,
+              publicKey: Array.from(PUBLIC_KEY),
+              device: deviceName,
+            }),
+          });
+
+          const data = await res.json();
+          console.log(data);
+          if (data.success) {
+            const existingUsers = JSON.parse(localStorage.getItem('users'));
+            if (existingUsers) {
+              existingUsers.push({
+                email: email,
+                publicKey: JSON.stringify(Array.from(PUBLIC_KEY)),
+                privateKey: JSON.stringify(Array.from(PRIVATE_KEY)),
+              });
+              localStorage.setItem('users', JSON.stringify(existingUsers));
+            } else {
+              localStorage.setItem(
+                'users',
+                JSON.stringify([
+                  {
+                    email: email,
+                    publicKey: JSON.stringify(Array.from(PUBLIC_KEY)),
+                    privateKey: JSON.stringify(Array.from(PRIVATE_KEY)),
+                  },
+                ])
+              );
+            }
+
+            //// Store keys in local storage (example, ensure secure storage)
+            //localStorage.setItem(
+            //  'publicKey',
+            //  JSON.stringify(Array.from(PUBLIC_KEY))
+            //);
+            //localStorage.setItem(
+            //  'privateKey',
+            //  JSON.stringify(Array.from(PRIVATE_KEY))
+            //);
+            window.location.href = '/';
+          } else {
+            alert(data.message);
+          }
+        });
+      } catch (error) {
+        console.error('Key pair generation failed:', error);
+      }
+    }
+
+    // Call the function to register user with generated keys
+    registerUserWithKeys();
   </script>
 </html>
