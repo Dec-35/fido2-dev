@@ -47,8 +47,7 @@
         ).privateKey;
       } catch (error) {
         console.error('Error finding user: ', error);
-        alert('You dont have an account with this email address');
-        return;
+        storedPrivateKey = '{}';
       }
       storedPrivateKey = JSON.parse(storedPrivateKey);
 

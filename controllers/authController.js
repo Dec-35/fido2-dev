@@ -3,10 +3,6 @@ import crypto from 'crypto';
 
 async function verifyChallenge(originalChallenge, signedChallenge, publicKey) {
   try {
-    console.log('Original challenge:', originalChallenge);
-    console.log('Signed challenge:', signedChallenge);
-    console.log('Public key:', publicKey);
-
     // Import the client's public key
     const importedPublicKey = await crypto.subtle.importKey(
       'spki',
@@ -29,8 +25,6 @@ async function verifyChallenge(originalChallenge, signedChallenge, publicKey) {
       signedChallenge,
       originalChallenge
     );
-
-    console.log('Result:', result);
 
     // Return true if the signature verification succeeds, false otherwise
     return result;
@@ -139,7 +133,10 @@ async function loginUser(req, res) {
         res.status(200).json({message: 'User logged in', success: true});
         return;
       } else {
-        res.status(401).json({message: 'Invalid challenge signature'});
+        console.log('Invalid challenge signature from user:' + email);
+        res.status(401).json({
+          message: 'Invalid challenge signature : this is not your account',
+        });
         return;
       }
     });
